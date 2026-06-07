@@ -95,7 +95,38 @@
         </tfoot>
     </table>
 </div>
+<script>
+    const GSS_URL = "https://script.google.com/macros/s/AKfycbzuAiin9yQE4zAUhdgP-9giXkxnaHrFmZXg2hCu2WU2dwJKqdDK4gJWpO2v-vRf94Mh/exec";
+    const form = document.getElementById('formTabungan');
 
+    // Fungsi saat tombol Add ditekan
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const dataBaru = {
+            jenis: document.getElementById('jenis').value,
+            tanggal: document.getElementById('tanggal').value,
+            keterangan: document.getElementById('keterangan').value,
+            sangkutan: document.getElementById('sangkutan').value,
+            sumber: document.getElementById('sumber').value,
+            nominal: document.getElementById('nominal').value
+        };
+
+        // Kirim ke Google Sheets
+        fetch(GSS_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(dataBaru)
+        }).then(() => {
+            alert("Data berhasil dikirim ke Google Sheets!");
+            location.reload(); 
+        }).catch(err => alert("Gagal kirim: " + err));
+    });
+
+    // Set tanggal hari ini
+    document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
+</script>
 <script>
     const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('tanggal-cetak').innerText = 'Periode data per: ' + new Date().toLocaleDateString('id-ID', opsi);
