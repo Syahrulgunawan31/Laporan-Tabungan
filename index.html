@@ -196,7 +196,29 @@
     </style>
 </head>
 <body>
+document.getElementById('formTabungan').addEventListener('submit', function(e) {
+    e.preventDefault();
 
+    const dataBaru = {
+        jenis: document.getElementById('jenis').value,
+        tanggal: document.getElementById('tanggal').value,
+        keterangan: document.getElementById('keterangan').value,
+        sangkutan: document.getElementById('sangkutan').value,
+        sumber: document.getElementById('sumber').value,
+        nominal: document.getElementById('nominal').value
+    };
+
+    // Kirim data ke Google Sheets
+    fetch("https://script.google.com/macros/s/AKfycbzuAiin9yQE4zAUhdgP-9giXkxnaHrFmZXg2hCu2WU2dwJKqdDK4gJWpO2v-vRf94Mh/exec", {
+        method: "POST",
+        mode: "no-cors", // Penting agar tidak kena blokir CORS
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dataBaru)
+    }).then(() => {
+        alert("Data berhasil ditambahkan ke Google Sheets!");
+        location.reload(); // Refresh halaman agar data terbaru muncul
+    });
+});
 <div class="container">
     <h2>LAPORAN TABUNGAN PRIBADI</h2>
     <div class="subtitle" id="tanggal-cetak"></div>
