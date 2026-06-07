@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Tabungan Pribadi (Cloud)</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1150px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+        h2 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+        }
+        
+        /* === FORM INPUT === */
+        .form-transaksi {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+        }
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group label {
+            font-size: 0.85em;
+            font-weight: bold;
+            color: #495057;
+            height: 18px;
+        }
+        .form-group input, .form-group select {
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 0.95em;
+            outline: none;
+            box-sizing: border-box;
+            height: 42px;
+            transition: border-color 0.2s;
+            width: 100%;
+        }
+        .form-group input:focus, .form-group select:focus {
+            border-color: #2980b9;
+        }
+        
+        /* Tombol Utama */
+        .btn-container {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .btn-spacer {
+            height: 18px;
+        }
+        .btn-tambah {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 0 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.95em;
+            height: 42px;
+            transition: background 0.2s;
+            box-sizing: border-box;
+            white-space: nowrap;
+        }
+        .btn-tambah:hover {
+            background-color: #219653;
+        }
+        .btn-tambah:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .btn-tambah.mode-edit {
+            background-color: #2980b9;
+        }
+
+        /* Loading Indicator */
+        #loading-text {
+            display: none;
+            text-align: center;
+            font-weight: bold;
+            color: #d35400;
+            margin-bottom: 15px;
+        }
+
+        /* === ACTION AREA === */
+        .action-bar {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 15px;
+            gap: 10px;
+        }
+        .btn-export {
+            background-color: #34495e;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.9em;
+            transition: background 0.2s;
+        }
+        .btn-export:hover {
+            background-color: #2c3e50;
+        }
+
+        /* === STYLE TABEL === */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        th {
+            background-color: #2980b9;
+            color: white;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .setoran { color: #27ae60; font-weight: bold; }
+        .hutang { color: #c0392b; font-weight: bold; }
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        .action-buttons {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+        }
+        .btn-edit, .btn-hapus {
+            color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8em;
+        }
+        .btn-edit { background-color: #f39c12; }
+        .btn-edit:hover { background-color: #d35400; }
+        .btn-hapus { background-color: #e74c3c; }
+        .btn-hapus:hover { background-color: #c0392b; }
+
+        .total-row {
+            background-color: #ecf0f1; font-weight: bold; font-size: 1.1em;
+        }
+        .total-row td {
+            border-top: 2px solid #bdc3c7; border-bottom: 2px solid #bdc3c7;
+        }
+        .saldo-akhir { color: #2980b9; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>LAPORAN TABUNGAN PRIBADI (CLOUD SINKRON)</h2>
+    <div class="subtitle" id="tanggal-cetak"></div>
+    
+    <div id="loading-text">Menghubungkan ke Google Sheets... Mohon tunggu.</div>
+
+    <form class="form-transaksi" id="formTabungan">
+        <div class="form-group" style="flex: 0.8;">
+            <label for="jenis">Type</label>
+            <select id="jenis">
+                <option value="Masuk">Uang Masuk (+)</option>
+                <option value="Piutang">Piutang (+)</option>
+                <option value="Hutang">Hutang (-)</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="flex: 0.8;">
+            <label for="tanggal">Date</label>
+            <input type="date" id="tanggal" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="keterangan">Remarks</label>
+            <select id="keterangan">
+                <option value="Gaji Bulanan">Gaji Bulanan</option>
+                <option value="Uang Saku Tambahan">Uang Saku Tambahan</option>
+                <option value="Setoran Awal bulanan">Setoran Awal bulanan</option>
+                <option value="Bonus / Keuntungan">Bonus / Keuntungan</option>
+                <option value="Pinjam / Bayar Hutang">Pinjam / Bayar Hutang</option>
+                <option value="Memberi Pinjaman (Piutang)">Memberi Pinjaman (Piutang)</option>
+                <option value="Tabungan Lain-lain">Tabungan Lain-lain</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="flex: 0.9;">
+            <label for="sangkutan">Debtor/Creditor</label>
+            <input type="text" id="sangkutan" placeholder="Nama Orang / -">
+        </div>
+        
+        <div class="form-group">
+            <label for="sumber">Balance From Where</label>
+            <select id="sumber">
+                <option value="Bank BCA">Bank BCA</option>
+                <option value="Bank Mandiri">Bank Mandiri</option>
+                <option value="Dana">Dana</option> 
+                <option value="Seabank">Seabank</option>
+                <option value="BluBca">BluBca</option>
+                <option value="Stockbit">Stockbit</option>
+                <option value="GoPay">GoPay</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="nominal">Nominal (Rp)</label>
+            <input type="number" id="nominal" placeholder="Contoh: 50000" min="1" required>
+        </div>
+        
+        <div class="btn-container">
+            <div class="btn-spacer"></div>
+            <button type="submit" class="btn-tambah" id="submitBtn">Add</button>
+        </div>
+    </form>
+
+    <div class="action-bar">
+        <button class="btn-export" style="background-color: #2980b9;" onclick="muatDataDariCloud()">Refresh Data</button>
+        <button class="btn-export" onclick="exportKeCSV()">Export to CSV (Excel)</button>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Remarks</th>
+                <th>Debtor/Creditor</th>
+                <th>Balance Source</th>
+                <th class="text-right">Mutation</th>
+                <th style="width: 150px;" class="text-center">Action</th>
+            </tr>
+        </thead>
+        <tbody id="isi-tabel">
+        </tbody>
+        <tfoot>
+            <tr class="total-row">
+                <td colspan="4" class="text-right">TOTAL FINAL BALANCE:</td>
+                <td class="text-right saldo-akhir" id="saldo-akhir">Rp 0</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<script>
+    // === !!! PASTE URL GOOGLE APPS SCRIPT ANDA DI SINI !!! ===
+    const CLOUD_API_URL = "PASTIKAN_PASTE_URL_WEB_APP_ANDA_DISINI";
+
+    const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('tanggal-cetak').innerText = 'Periode data per: ' + new Date().toLocaleDateString('id-ID', opsi);
+    document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
+
+    let dataTabungan = [];
+    let editId = null;
+
+    const isiTabel = document.getElementById('isi-tabel');
+    const saldoAkhirElemen = document.getElementById('saldo-akhir');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingText = document.getElementById('loading-text');
+
+    function tampilkanLoading(show) {
+        if(show) {
+            loadingText.style.display = "block";
+            submitBtn.disabled = true;
+        } else {
+            loadingText.style.display = "none";
+            submitBtn.disabled = false;
+        }
+    }
+
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(angka);
+    }
+
+    function formatTanggal(stringTanggal) {
+        const d = new Date(stringTanggal);
+        const tgl = String(d.getDate()).padStart(2, '0');
+        const bln = String(d.getMonth() + 1).padStart(2, '0');
+        const thn = d.getFullYear();
+        return `${tgl}/${bln}/${thn}`;
+    }
+
+    // Ambil Data dari Google Sheets
+    function muatDataDariCloud() {
+        if(CLOUD_API_URL === "PASTIKAN_PASTE_URL_WEB_APP_ANDA_DISINI") {
+            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#c0392b; font-weight:bold;">Error: Silakan masukkan URL Google Apps Script Anda di dalam kode!</td></tr>`;
+            return;
+        }
+
+        tampilkanLoading(true);
+        fetch(CLOUD_API_URL, {
+            method: "POST",
+            mode: "no-cors", // Digunakan jika terjadi batasan CORS browser lama
+            body: JSON.stringify({ action: "read" })
+        })
+        .then(() => {
+            // Karena menggunakan mode no-cors responnya opaque, alternatif paling aman dan lancar di HP adalah langsung fetch normal:
+            return fetch(CLOUD_API_URL + "?action=read"); 
+        })
+        .then(res => res.json())
+        .then(res => {
+            if(res.status === "success") {
+                dataTabungan = res.data;
+                dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+                renderTabel(false); // render tanpa kirim balik data
+            }
+            tampilkanLoading(false);
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Gagal memuat data dari Cloud. Menampilkan data lokal sementara.");
+            tampilkanLoading(false);
+        });
+    }
+
+    // Sinkronisasi data lokal ke Google Sheets (Kirim Data)
+    function sinkronisasiKeCloud() {
+        tampilkanLoading(true);
+        fetch(CLOUD_API_URL, {
+            method: "POST",
+            body: JSON.stringify({ action: "sync", transactions: dataTabungan })
+        })
+        .then(res => res.json())
+        .then(res => {
+            tampilkanLoading(false);
+            if(res.status !== "success") alert("Gagal sinkronisasi data ke Cloud!");
+        })
+        .catch(err => {
+            console.error(err);
+            tampilkanLoading(false);
+        });
+    }
+
+    function renderTabel(perluKirimKeCloud = true) {
+        isiTabel.innerHTML = '';
+        let totalSaldo = 0;
+
+        if(dataTabungan.length === 0) {
+            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#95a5a6;">Belum ada data transaksi.</td></tr>`;
+            saldoAkhirElemen.innerText = "Rp 0";
+            return;
+        }
+
+        dataTabungan.forEach((item, index) => {
+            const row = document.createElement('tr');
+            let tanda = "+ ";
+            let kelasWarna = "setoran";
+
+            if (item.jenis === "Hutang") {
+                tanda = "- ";
+                kelasWarna = "hutang";
+                totalSaldo -= parseFloat(item.nominal);
+            } else {
+                totalSaldo += parseFloat(item.nominal);
+            }
+
+            const namaSangkutan = item.sangkutan || "-";
+
+            row.innerHTML = `
+                <td>${formatTanggal(item.tanggal)}</td>
+                <td>${item.keterangan}</td>
+                <td><strong style="color: #34495e;">${namaSangkutan}</strong></td>
+                <td><span style="background:#eef2f7; padding:4px 8px; border-radius:4px; font-size:0.9em;">${item.sumber}</span></td>
+                <td class="text-right ${kelasWarna}">${tanda}${formatRupiah(item.nominal).replace('Rp', 'Rp ')}</td>
+                <td class="text-center">
+                    <div class="action-buttons">
+                        <button class="btn-edit" onclick="mulaiEdit(${index})">Edit</button>
+                        <button class="btn-hapus" onclick="hapusData(${index})">Hapus</button>
+                    </div>
+                </td>
+            `;
+            isiTabel.appendChild(row);
+        });
+
+        if (totalSaldo < 0) {
+            saldoAkhirElemen.innerText = "- Rp " + formatRupiah(Math.abs(totalSaldo)).replace('Rp', '');
+            saldoAkhirElemen.style.color = "#c0392b";
+        } else {
+            saldoAkhirElemen.innerText = "Rp " + formatRupiah(totalSaldo).replace('Rp', '');
+            saldoAkhirElemen.style.color = "#2980b9";
+        }
+
+        if(perluKirimKeCloud) {
+            sinkronisasiKeCloud();
+        }
+    }
+
+    document.getElementById('formTabungan').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const jenis = document.getElementById('jenis').value;
+        const tanggal = document.getElementById('tanggal').value;
+        const keterangan = document.getElementById('keterangan').value;
+        const sangkutan = document.getElementById('sangkutan').value || "-";
+        const sumber = document.getElementById('sumber').value;
+        const nominal = Math.abs(parseInt(document.getElementById('nominal').value));
+
+        if (editId !== null) {
+            dataTabungan[editId] = { jenis, tanggal, keterangan, sangkutan, sumber, nominal };
+            editId = null;
+            submitBtn.innerText = "Add";
+            submitBtn.classList.remove('mode-edit');
+        } else {
+            dataTabungan.push({ jenis, tanggal, keterangan, sangkutan, sumber, nominal });
+        }
+
+        dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
+
+        renderTabel(true); // Kirim update ke cloud
+        
+        document.getElementById('nominal').value = '';
+        document.getElementById('sangkutan').value = '';
+        document.getElementById('jenis').value = "Masuk";
+        document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
+    });
+
+    window.mulaiEdit = function(index) {
+        const item = dataTabungan[index];
+        document.getElementById('jenis').value = item.jenis;
+        document.getElementById('tanggal').value = item.tanggal;
+        document.getElementById('keterangan').value = item.keterangan;
+        document.getElementById('sangkutan').value = item.sangkutan;
+        document.getElementById('sumber').value = item.sumber;
+        document.getElementById('nominal').value = item.nominal;
+
+        editId = index;
+        submitBtn.innerText = "Update Transaction";
+        submitBtn.classList.add('mode-edit');
+    }
+
+    window.hapusData = function(index) {
+        if(confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+            dataTabungan.splice(index, 1);
+            renderTabel(true);
+        }
+    }
+
+    window.exportKeCSV = function() {
+        if(dataTabungan.length === 0) { return alert("Tidak ada data."); }
+        let barisCsv = ["Type,Date,Remarks,Debtor/Creditor,Balance Source,Nominal"];
+        dataTabungan.forEach(item => {
+            barisCsv.push(`${item.jenis},${formatTanggal(item.tanggal)},"${item.keterangan}","${item.sangkutan}","${item.sumber}",${item.jenis === "Hutang" ? -item.nominal : item.nominal}`);
+        });
+        let blob = new Blob(["\uFEFF" + barisCsv.join("\n")], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Laporan_Tabungan_Pribadi.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Mulai ambil data saat halaman pertama kali dibuka
+    muatDataDariCloud();
+</script>
+
+</body>
+</html>
