@@ -95,34 +95,6 @@
         </tfoot>
     </table>
 </div>
-// Ganti URL di bawah dengan URL yang Anda dapatkan dari langkah ke-3
-const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxgs3kjQdGukVdGWbW2yb0ef9nDz5AQ0fIbxjhvM_tVFrimlBM_gYdNcAajLnXt_bhX/exec";
-
-// Kode untuk mengirim data
-document.getElementById('formTabungan').addEventListener('submit', function(e) {
-  e.preventDefault();
-  
-  const dataBaru = {
-    jenis: document.getElementById('jenis').value,
-    tanggal: document.getElementById('tanggal').value,
-    keterangan: document.getElementById('keterangan').value,
-    sangkutan: document.getElementById('sangkutan').value,
-    sumber: document.getElementById('sumber').value,
-    nominal: document.getElementById('nominal').value
-  };
-
-  fetch(CLOUD_API_URL, {
-    method: "POST",
-    mode: "no-cors",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(dataBaru)
-  })
-  .then(() => {
-    alert("Data berhasil ditambahkan ke Google Sheets!");
-    location.reload(); 
-  })
-  .catch(error => console.error('Error:', error));
-});
 <script>
     const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('tanggal-cetak').innerText = 'Periode data per: ' + new Date().toLocaleDateString('id-ID', opsi);
