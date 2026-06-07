@@ -277,7 +277,7 @@
 </div>
 
 <script>
-    // === !!! PASTE URL GOOGLE APPS SCRIPT ANDA DI SINI !!! ===
+    // === !!! GANTI DENGAN URL WEB APP ASLI ANDA YANG BERAKHIRAN /exec !!! ===
     const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxqoqywDu5tvWudOYmC1DaXp5MMDM9OtJW4oMWHhXtk9WtjczvvTNthahRoq2_Nt_FN/exec";
 
     const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -314,45 +314,42 @@
         return `${tgl}/${bln}/${thn}`;
     }
 
-    // Ambil Data dari Google Sheets
     function muatDataDariCloud() {
-        if(CLOUD_API_URL === "PASTIKAN_PASTE_URL_WEB_APP_ANDA_DISINI") {
-            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#c0392b; font-weight:bold;">Error: Silakan masukkan URL Google Apps Script Anda di dalam kode!</td></tr>`;
+        if(CLOUD_API_URL === "TEMPELKAN_URL_BARU_ANDA_DI_SINI") {
+            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#c0392b; font-weight:bold;">Error: Silakan masukkan URL Google Apps Script /exec Anda di baris 190!</td></tr>`;
             return;
         }
 
         tampilkanLoading(true);
-        fetch(CLOUD_API_URL, {
-            method: "POST",
-            mode: "no-cors", // Digunakan jika terjadi batasan CORS browser lama
-            body: JSON.stringify({ action: "read" })
-        })
-        .then(() => {
-            // Karena menggunakan mode no-cors responnya opaque, alternatif paling aman dan lancar di HP adalah langsung fetch normal:
-            return fetch(CLOUD_API_URL + "?action=read"); 
-        })
+        fetch(CLOUD_API_URL + "?action=read")
         .then(res => res.json())
         .then(res => {
             if(res.status === "success") {
-                dataTabungan = res.data;
+                dataTabungan = res.data || [];
                 dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
-                renderTabel(false); // render tanpa kirim balik data
+                renderTabel(false);
             }
             tampilkanLoading(false);
         })
         .catch(err => {
             console.error(err);
-            alert("Gagal memuat data dari Cloud. Menampilkan data lokal sementara.");
+            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Gagal memuat data cloud. Pastikan URL benar & permission 'Anyone'.</td></tr>`;
             tampilkanLoading(false);
         });
     }
 
-    // Sinkronisasi data lokal ke Google Sheets (Kirim Data)
     function sinkronisasiKeCloud() {
         tampilkanLoading(true);
+        
+        // Membungkus data dengan form data biasa agar tidak memicu kendala CORS browser lawas
+        const formData = new URLSearchParams();
+        formData.append("action", "sync");
+        formData.append("transactions", JSON.stringify(dataTabungan));
+
         fetch(CLOUD_API_URL, {
             method: "POST",
-            body: JSON.stringify({ action: "sync", transactions: dataTabungan })
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: formData.toString()
         })
         .then(res => res.json())
         .then(res => {
@@ -440,7 +437,7 @@
 
         dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
 
-        renderTabel(true); // Kirim update ke cloud
+        renderTabel(true);
         
         document.getElementById('nominal').value = '';
         document.getElementById('sangkutan').value = '';
@@ -485,7 +482,6 @@
         document.body.removeChild(link);
     }
 
-    // Mulai ambil data saat halaman pertama kali dibuka
     muatDataDariCloud();
 </script>
 
