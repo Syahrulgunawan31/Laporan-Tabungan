@@ -95,38 +95,34 @@
         </tfoot>
     </table>
 </div>
-<script>
-    const GSS_URL = "https://script.google.com/macros/s/AKfycbz7-gOzGO-FGrAmN7gBU-mqBY6WQZ4vFYx_GxcZ77w9YJaCuyERb9VghYDpDQuk92M4/exec";
-    const form = document.getElementById('formTabungan');
+// Ganti URL di bawah dengan URL yang Anda dapatkan dari langkah ke-3
+const CLOUD_API_URL = "SALIN_URL_WEB_APP_ANDA_DISINI";
 
-    // Fungsi saat tombol Add ditekan
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
+// Kode untuk mengirim data
+document.getElementById('formTabungan').addEventListener('submit', function(e) {
+  e.preventDefault();
+  
+  const dataBaru = {
+    jenis: document.getElementById('jenis').value,
+    tanggal: document.getElementById('tanggal').value,
+    keterangan: document.getElementById('keterangan').value,
+    sangkutan: document.getElementById('sangkutan').value,
+    sumber: document.getElementById('sumber').value,
+    nominal: document.getElementById('nominal').value
+  };
 
-        const dataBaru = {
-            jenis: document.getElementById('jenis').value,
-            tanggal: document.getElementById('tanggal').value,
-            keterangan: document.getElementById('keterangan').value,
-            sangkutan: document.getElementById('sangkutan').value,
-            sumber: document.getElementById('sumber').value,
-            nominal: document.getElementById('nominal').value
-        };
-
-        // Kirim ke Google Sheets
-        fetch(GSS_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dataBaru)
-        }).then(() => {
-            alert("Data berhasil dikirim ke Google Sheets!");
-            location.reload(); 
-        }).catch(err => alert("Gagal kirim: " + err));
-    });
-
-    // Set tanggal hari ini
-    document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
-</script>
+  fetch(CLOUD_API_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(dataBaru)
+  })
+  .then(() => {
+    alert("Data berhasil ditambahkan ke Google Sheets!");
+    location.reload(); 
+  })
+  .catch(error => console.error('Error:', error));
+});
 <script>
     const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('tanggal-cetak').innerText = 'Periode data per: ' + new Date().toLocaleDateString('id-ID', opsi);
@@ -160,19 +156,7 @@
         const thn = d.getFullYear();
         return `${tgl}/${bln}/${thn}`;
     }
-function hapusData(baris) {
-  if (confirm("Yakin ingin menghapus data ini?")) {
-    fetch(CLOUD_API_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify({ action: "delete", baris: baris })
-    })
-    .then(() => {
-      alert("Data berhasil dihapus!");
-      location.reload(); // Refresh halaman untuk update tabel
-    });
-  }
-}
+
     function renderTabel() {
         isiTabel.innerHTML = '';
         let totalSaldo = 0;
@@ -306,21 +290,16 @@ function hapusData(baris) {
         document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
     });
 
-window.hapusData = function(baris) {
-    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini dari Sheets?")) {
-        fetch(CLOUD_API_URL, {
-            method: "POST",
-            mode: "no-cors",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "delete", baris: baris })
-        })
-        .then(() => {
-            alert("Data berhasil dihapus!");
-            location.reload(); // Refresh halaman untuk mengambil data terbaru
-        })
-        .catch(err => console.error("Error menghapus:", err));
-    }
-}
+    window.hapusData = function(index) {
+        if(confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+            if(editId === index) {
+                editId = null;
+                submitBtn.innerText = "Add";
+                submitBtn.classList.remove('mode-edit');
+                document.getElementById('nominal').value = '';
+                document.getElementById('sangkutan').value = '';
+            }
+            dataTabungan.splice(index, 1);
             renderTabel();
         }
     }
