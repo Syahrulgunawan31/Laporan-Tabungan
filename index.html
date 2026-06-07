@@ -1,283 +1,5 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Tabungan Pribadi (Cloud)</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 1150px;
-            margin: 0 auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        }
-        h2 {
-            text-align: center;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-        .subtitle {
-            text-align: center;
-            color: #7f8c8d;
-            font-size: 0.9em;
-            margin-bottom: 30px;
-        }
-        
-        /* === FORM INPUT === */
-        .form-transaksi {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            border: 1px solid #e9ecef;
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-        }
-        .form-group {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .form-group label {
-            font-size: 0.85em;
-            font-weight: bold;
-            color: #495057;
-            height: 18px;
-        }
-        .form-group input, .form-group select {
-            padding: 10px 12px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            font-size: 0.95em;
-            outline: none;
-            box-sizing: border-box;
-            height: 42px;
-            transition: border-color 0.2s;
-            width: 100%;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: #2980b9;
-        }
-        
-        /* Tombol Utama */
-        .btn-container {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        .btn-spacer {
-            height: 18px;
-        }
-        .btn-tambah {
-            background-color: #27ae60;
-            color: white;
-            border: none;
-            padding: 0 25px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.95em;
-            height: 42px;
-            transition: background 0.2s;
-            box-sizing: border-box;
-            white-space: nowrap;
-        }
-        .btn-tambah:hover {
-            background-color: #219653;
-        }
-        .btn-tambah:disabled {
-            background-color: #bdc3c7;
-            cursor: not-allowed;
-        }
-        .btn-tambah.mode-edit {
-            background-color: #2980b9;
-        }
-
-        /* Loading Indicator */
-        #loading-text {
-            display: none;
-            text-align: center;
-            font-weight: bold;
-            color: #d35400;
-            margin-bottom: 15px;
-        }
-
-        /* === ACTION AREA === */
-        .action-bar {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 15px;
-            gap: 10px;
-        }
-        .btn-export {
-            background-color: #34495e;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.9em;
-            transition: background 0.2s;
-        }
-        .btn-export:hover {
-            background-color: #2c3e50;
-        }
-
-        /* === STYLE TABEL === */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 5px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e0e0e0;
-        }
-        th {
-            background-color: #2980b9;
-            color: white;
-            text-transform: uppercase;
-            font-size: 0.85em;
-            letter-spacing: 0.5px;
-        }
-        tr:hover {
-            background-color: #f9f9f9;
-        }
-        .setoran { color: #27ae60; font-weight: bold; }
-        .hutang { color: #c0392b; font-weight: bold; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
-        
-        .action-buttons {
-            display: flex;
-            gap: 6px;
-            justify-content: center;
-        }
-        .btn-edit, .btn-hapus {
-            color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8em;
-        }
-        .btn-edit { background-color: #f39c12; }
-        .btn-edit:hover { background-color: #d35400; }
-        .btn-hapus { background-color: #e74c3c; }
-        .btn-hapus:hover { background-color: #c0392b; }
-
-        .total-row {
-            background-color: #ecf0f1; font-weight: bold; font-size: 1.1em;
-        }
-        .total-row td {
-            border-top: 2px solid #bdc3c7; border-bottom: 2px solid #bdc3c7;
-        }
-        .saldo-akhir { color: #2980b9; }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>LAPORAN TABUNGAN PRIBADI (CLOUD SINKRON)</h2>
-    <div class="subtitle" id="tanggal-cetak"></div>
-    
-    <div id="loading-text">Menghubungkan ke Google Sheets... Mohon tunggu.</div>
-
-    <form class="form-transaksi" id="formTabungan">
-        <div class="form-group" style="flex: 0.8;">
-            <label for="jenis">Type</label>
-            <select id="jenis">
-                <option value="Masuk">Uang Masuk (+)</option>
-                <option value="Piutang">Piutang (+)</option>
-                <option value="Hutang">Hutang (-)</option>
-            </select>
-        </div>
-
-        <div class="form-group" style="flex: 0.8;">
-            <label for="tanggal">Date</label>
-            <input type="date" id="tanggal" required>
-        </div>
-        
-        <div class="form-group">
-            <label for="keterangan">Remarks</label>
-            <select id="keterangan">
-                <option value="Gaji Bulanan">Gaji Bulanan</option>
-                <option value="Uang Saku Tambahan">Uang Saku Tambahan</option>
-                <option value="Setoran Awal bulanan">Setoran Awal bulanan</option>
-                <option value="Bonus / Keuntungan">Bonus / Keuntungan</option>
-                <option value="Pinjam / Bayar Hutang">Pinjam / Bayar Hutang</option>
-                <option value="Memberi Pinjaman (Piutang)">Memberi Pinjaman (Piutang)</option>
-                <option value="Tabungan Lain-lain">Tabungan Lain-lain</option>
-            </select>
-        </div>
-
-        <div class="form-group" style="flex: 0.9;">
-            <label for="sangkutan">Debtor/Creditor</label>
-            <input type="text" id="sangkutan" placeholder="Nama Orang / -">
-        </div>
-        
-        <div class="form-group">
-            <label for="sumber">Balance From Where</label>
-            <select id="sumber">
-                <option value="Bank BCA">Bank BCA</option>
-                <option value="Bank Mandiri">Bank Mandiri</option>
-                <option value="Dana">Dana</option> 
-                <option value="Seabank">Seabank</option>
-                <option value="BluBca">BluBca</option>
-                <option value="Stockbit">Stockbit</option>
-                <option value="GoPay">GoPay</option>
-            </select>
-        </div>
-        
-        <div class="form-group">
-            <label for="nominal">Nominal (Rp)</label>
-            <input type="number" id="nominal" placeholder="Contoh: 50000" min="1" required>
-        </div>
-        
-        <div class="btn-container">
-            <div class="btn-spacer"></div>
-            <button type="submit" class="btn-tambah" id="submitBtn">Add</button>
-        </div>
-    </form>
-
-    <div class="action-bar">
-        <button class="btn-export" style="background-color: #2980b9;" onclick="muatDataDariCloud()">Refresh Data</button>
-        <button class="btn-export" onclick="exportKeCSV()">Export to CSV (Excel)</button>
-    </div>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Remarks</th>
-                <th>Debtor/Creditor</th>
-                <th>Balance Source</th>
-                <th class="text-right">Mutation</th>
-                <th style="width: 150px;" class="text-center">Action</th>
-            </tr>
-        </thead>
-        <tbody id="isi-tabel">
-        </tbody>
-        <tfoot>
-            <tr class="total-row">
-                <td colspan="4" class="text-right">TOTAL FINAL BALANCE:</td>
-                <td class="text-right saldo-akhir" id="saldo-akhir">Rp 0</td>
-                <td></td>
-            </tr>
-        </tfoot>
-    </table>
-</div>
-
 <script>
-    // === !!! GANTI DENGAN URL WEB APP ASLI ANDA YANG BERAKHIRAN /exec !!! ===
+    // === !!! URL WEB APP GOOGLE APPS SCRIPT !!! ===
     const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxqoqywDu5tvWudOYmC1DaXp5MMDM9OtJW4oMWHhXtk9WtjczvvTNthahRoq2_Nt_FN/exec";
 
     const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -314,17 +36,14 @@
         return `${tgl}/${bln}/${thn}`;
     }
 
+    // MEMBACA DATA DARI CLOUD
     function muatDataDariCloud() {
-        if(CLOUD_API_URL === "TEMPELKAN_URL_BARU_ANDA_DI_SINI") {
-            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#c0392b; font-weight:bold;">Error: Silakan masukkan URL Google Apps Script /exec Anda di baris 190!</td></tr>`;
-            return;
-        }
-
         tampilkanLoading(true);
         fetch(CLOUD_API_URL + "?action=read")
         .then(res => res.json())
         .then(res => {
             if(res.status === "success") {
+                // Pastikan properti dari cloud menggunakan huruf kecil sesuai kolom Google Sheets
                 dataTabungan = res.data || [];
                 dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
                 renderTabel(false);
@@ -338,12 +57,13 @@
         });
     }
 
+    // SINKRONISASI KE CLOUD
     function sinkronisasiKeCloud() {
         tampilkanLoading(true);
         
-        // Membungkus data dengan form data biasa agar tidak memicu kendala CORS browser lawas
         const formData = new URLSearchParams();
         formData.append("action", "sync");
+        // Memastikan payload dikirim dalam bentuk string JSON dari array objek
         formData.append("transactions", JSON.stringify(dataTabungan));
 
         fetch(CLOUD_API_URL, {
@@ -426,6 +146,7 @@
         const sumber = document.getElementById('sumber').value;
         const nominal = Math.abs(parseInt(document.getElementById('nominal').value));
 
+        // Properti di bawah diatur HURUF KECIL agar sama persis dengan kolom Google Sheets Anda
         if (editId !== null) {
             dataTabungan[editId] = { jenis, tanggal, keterangan, sangkutan, sumber, nominal };
             editId = null;
@@ -468,7 +189,7 @@
 
     window.exportKeCSV = function() {
         if(dataTabungan.length === 0) { return alert("Tidak ada data."); }
-        let barisCsv = ["Type,Date,Remarks,Debtor/Creditor,Balance Source,Nominal"];
+        let barisCsv = ["jenis,tanggal,keterangan,sangkutan,sumber,nominal"];
         dataTabungan.forEach(item => {
             barisCsv.push(`${item.jenis},${formatTanggal(item.tanggal)},"${item.keterangan}","${item.sangkutan}","${item.sumber}",${item.jenis === "Hutang" ? -item.nominal : item.nominal}`);
         });
@@ -484,6 +205,3 @@
 
     muatDataDariCloud();
 </script>
-
-</body>
-</html>
