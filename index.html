@@ -1,207 +1,118 @@
-<script>
-    // === !!! URL WEB APP GOOGLE APPS SCRIPT !!! ===
-    const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxaXUg9emLJ-xcPHoOlFWB-R8slkdm6CqBq1NP5CN_KsvKM5PAqJPvjGp38Ov4IzBCE/exec";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laporan Tabungan Pribadi</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #2c3e50; }
+        .info-panel { display: flex; justify-content: space-between; margin-bottom: 20px; background: #ecf0f1; padding: 15px; border-radius: 6px; font-weight: bold; }
+        .balance-box { font-size: 1.2rem; color: #27ae60; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #2980b9; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .loading { text-align: center; font-size: 1.2rem; color: #7f8c8d; margin: 20px 0; }
+    </style>
+</head>
+<body>
 
-    const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
-    document.getElementById('tanggal-cetak').innerText = 'Periode data per: ' + new Date().toLocaleDateString('id-ID', opsi);
-    document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
+<div class="container">
+    <h2>Laporan Tabungan Pribadi (Cloud Sync)</h2>
+    
+    <div class="info-panel">
+        <div id="tanggal-cetak">Periode data per: -</div>
+        <div class="balance-box">TOTAL FINAL BALANCE: <span id="saldo-akhir">Rp 0</span></div>
+    </div>
+
+    <div id="loading-text" class="loading">Menghubungkan ke Google Sheets... Mohon tunggu...</div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Jenis</th>
+                <th>Tanggal</th>
+                <th>Keterangan</th>
+                <th>Sangkutan</th>
+                <th>Sumber</th>
+                <th>Nominal</th>
+            </tr>
+        </thead>
+        <tbody id="isi-tabel">
+            </tbody>
+    </table>
+</div>
+
+<script>
+    // === URL WEB APP GOOGLE APPS SCRIPT ANDA ===
+    const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbzOXSbJzgV7Lyu77NTq0LOFU_kqGsT99yh5ZDORSCK3NO4TnScRjny_SEG2otvgFwv-/exec";
 
     let dataTabungan = [];
-    let editId = null;
 
-    const isiTabel = document.getElementById('isi-tabel');
-    const saldoAkhirElemen = document.getElementById('saldo-akhir');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingText = document.getElementById('loading-text');
+    // Mengatur tanggal otomatis di sistem web
+    const opsi = { year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('tanggal-cetak').innerText = 'Periode data per: ' + new Date().toLocaleDateString('id-ID', opsi);
 
-    function tampilkanLoading(show) {
-        if(show) {
-            loadingText.style.display = "block";
-            submitBtn.disabled = true;
-        } else {
-            loadingText.style.display = "none";
-            submitBtn.disabled = false;
-        }
+    // Fungsi otomatis mengambil data saat halaman web dibuka
+    function muatDataDariSheets() {
+        const loadingElemen = document.getElementById('loading-text');
+        loadingElemen.style.display = "block";
+
+        fetch(CLOUD_API_URL)
+            .then(response => response.json())
+            .then(data => {
+                dataTabungan = data;
+                perbaruiTabel();
+                loadingElemen.style.display = "none";
+            })
+            .catch(err => {
+                console.error("Gagal memuat data dari cloud:", err);
+                loadingElemen.innerText = "Gagal memuat data. Periksa kembali deployment Apps Script Anda.";
+            });
     }
 
-    function formatRupiah(angka) {
-        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(angka);
-    }
-
-    function formatTanggal(stringTanggal) {
-        const d = new Date(stringTanggal);
-        const tgl = String(d.getDate()).padStart(2, '0');
-        const bln = String(d.getMonth() + 1).padStart(2, '0');
-        const thn = d.getFullYear();
-        return `${tgl}/${bln}/${thn}`;
-    }
-
-    // MEMBACA DATA DARI CLOUD
-    function muatDataDariCloud() {
-        tampilkanLoading(true);
-        fetch(CLOUD_API_URL + "?action=read")
-        .then(res => res.json())
-        .then(res => {
-            if(res.status === "success") {
-                // Pastikan properti dari cloud menggunakan huruf kecil sesuai kolom Google Sheets
-                dataTabungan = res.data || [];
-                dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
-                renderTabel(false);
-            }
-            tampilkanLoading(false);
-        })
-        .catch(err => {
-            console.error(err);
-            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#e74c3c;">Gagal memuat data cloud. Pastikan URL benar & permission 'Anyone'.</td></tr>`;
-            tampilkanLoading(false);
-        });
-    }
-
-    // SINKRONISASI KE CLOUD
-    function sinkronisasiKeCloud() {
-        tampilkanLoading(true);
+    // Fungsi memproses array data menjadi baris tabel HTML
+    function perbaruiTabel() {
+        const isiTabel = document.getElementById('isi-tabel');
+        const saldoAkhirElemen = document.getElementById('saldo-akhir');
         
-        const formData = new URLSearchParams();
-        formData.append("action", "sync");
-        // Memastikan payload dikirim dalam bentuk string JSON dari array objek
-        formData.append("transactions", JSON.stringify(dataTabungan));
+        isiTabel.innerHTML = "";
+        let totalBalance = 0;
 
-        fetch(CLOUD_API_URL, {
-            method: "POST",
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: formData.toString()
-        })
-        .then(res => res.json())
-        .then(res => {
-            tampilkanLoading(false);
-            if(res.status !== "success") alert("Gagal sinkronisasi data ke Cloud!");
-        })
-        .catch(err => {
-            console.error(err);
-            tampilkanLoading(false);
-        });
-    }
-
-    function renderTabel(perluKirimKeCloud = true) {
-        isiTabel.innerHTML = '';
-        let totalSaldo = 0;
-
-        if(dataTabungan.length === 0) {
-            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#95a5a6;">Belum ada data transaksi.</td></tr>`;
+        if (dataTabungan.length === 0) {
+            isiTabel.innerHTML = `<tr><td colspan="6" style="text-align:center;">Tidak ada data tabungan yang ditemukan di Google Sheets.</td></tr>`;
             saldoAkhirElemen.innerText = "Rp 0";
             return;
         }
 
-        dataTabungan.forEach((item, index) => {
-            const row = document.createElement('tr');
-            let tanda = "+ ";
-            let kelasWarna = "setoran";
-
-            if (item.jenis === "Hutang") {
-                tanda = "- ";
-                kelasWarna = "hutang";
-                totalSaldo -= parseFloat(item.nominal);
-            } else {
-                totalSaldo += parseFloat(item.nominal);
+        dataTabungan.forEach(item => {
+            // Hitung total balance otomatis (Pemasukan ditambah, Pengeluaran dikurang)
+            if (item.jenis.toLowerCase() === "pemasukan") {
+                totalBalance += item.nominal;
+            } else if (item.jenis.toLowerCase() === "pengeluaran") {
+                totalBalance -= item.nominal;
             }
 
-            const namaSangkutan = item.sangkutan || "-";
-
+            const row = document.createElement('tr');
             row.innerHTML = `
-                <td>${formatTanggal(item.tanggal)}</td>
-                <td>${item.keterangan}</td>
-                <td><strong style="color: #34495e;">${namaSangkutan}</strong></td>
-                <td><span style="background:#eef2f7; padding:4px 8px; border-radius:4px; font-size:0.9em;">${item.sumber}</span></td>
-                <td class="text-right ${kelasWarna}">${tanda}${formatRupiah(item.nominal).replace('Rp', 'Rp ')}</td>
-                <td class="text-center">
-                    <div class="action-buttons">
-                        <button class="btn-edit" onclick="mulaiEdit(${index})">Edit</button>
-                        <button class="btn-hapus" onclick="hapusData(${index})">Hapus</button>
-                    </div>
-                </td>
+                <td><strong>${item.jenis}</strong></td>
+                <td>${item.tanggal}</td>
+                <td>${item.keterangan || '-'}</td>
+                <td>${item.sangkutan || '-'}</td>
+                <td>${item.sumber || '-'}</td>
+                <td>Rp ${item.nominal.toLocaleString('id-ID')}</td>
             `;
             isiTabel.appendChild(row);
         });
 
-        if (totalSaldo < 0) {
-            saldoAkhirElemen.innerText = "- Rp " + formatRupiah(Math.abs(totalSaldo)).replace('Rp', '');
-            saldoAkhirElemen.style.color = "#c0392b";
-        } else {
-            saldoAkhirElemen.innerText = "Rp " + formatRupiah(totalSaldo).replace('Rp', '');
-            saldoAkhirElemen.style.color = "#2980b9";
-        }
-
-        if(perluKirimKeCloud) {
-            sinkronisasiKeCloud();
-        }
+        saldoAkhirElemen.innerText = "Rp " + totalBalance.toLocaleString('id-ID');
     }
 
-    document.getElementById('formTabungan').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const jenis = document.getElementById('jenis').value;
-        const tanggal = document.getElementById('tanggal').value;
-        const keterangan = document.getElementById('keterangan').value;
-        const sangkutan = document.getElementById('sangkutan').value || "-";
-        const sumber = document.getElementById('sumber').value;
-        const nominal = Math.abs(parseInt(document.getElementById('nominal').value));
-
-        // Properti di bawah diatur HURUF KECIL agar sama persis dengan kolom Google Sheets Anda
-        if (editId !== null) {
-            dataTabungan[editId] = { jenis, tanggal, keterangan, sangkutan, sumber, nominal };
-            editId = null;
-            submitBtn.innerText = "Add";
-            submitBtn.classList.remove('mode-edit');
-        } else {
-            dataTabungan.push({ jenis, tanggal, keterangan, sangkutan, sumber, nominal });
-        }
-
-        dataTabungan.sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal));
-
-        renderTabel(true);
-        
-        document.getElementById('nominal').value = '';
-        document.getElementById('sangkutan').value = '';
-        document.getElementById('jenis').value = "Masuk";
-        document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
-    });
-
-    window.mulaiEdit = function(index) {
-        const item = dataTabungan[index];
-        document.getElementById('jenis').value = item.jenis;
-        document.getElementById('tanggal').value = item.tanggal;
-        document.getElementById('keterangan').value = item.keterangan;
-        document.getElementById('sangkutan').value = item.sangkutan;
-        document.getElementById('sumber').value = item.sumber;
-        document.getElementById('nominal').value = item.nominal;
-
-        editId = index;
-        submitBtn.innerText = "Update Transaction";
-        submitBtn.classList.add('mode-edit');
-    }
-
-    window.hapusData = function(index) {
-        if(confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-            dataTabungan.splice(index, 1);
-            renderTabel(true);
-        }
-    }
-
-    window.exportKeCSV = function() {
-        if(dataTabungan.length === 0) { return alert("Tidak ada data."); }
-        let barisCsv = ["jenis,tanggal,keterangan,sangkutan,sumber,nominal"];
-        dataTabungan.forEach(item => {
-            barisCsv.push(`${item.jenis},${formatTanggal(item.tanggal)},"${item.keterangan}","${item.sangkutan}","${item.sumber}",${item.jenis === "Hutang" ? -item.nominal : item.nominal}`);
-        });
-        let blob = new Blob(["\uFEFF" + barisCsv.join("\n")], { type: 'text/csv;charset=utf-8;' });
-        let url = URL.createObjectURL(blob);
-        let link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `Laporan_Tabungan_Pribadi.csv`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    }
-
-    muatDataDariCloud();
+    // Jalankan penarikan data otomatis sewaktu halaman pertama kali dimuat
+    window.onload = muatDataDariSheets;
 </script>
+
+</body>
+</html>
