@@ -96,7 +96,7 @@
     </table>
 </div>
 <script>
-    const GSS_URL = "https://script.google.com/macros/s/AKfycbxd9fEXioMotVfIso7a9jRE4yvqVTeBuzOkOmx2xaZJcP4aSqA-To0Xa2yN_10sGtLw/exec";
+    const GSS_URL = "https://script.google.com/macros/s/AKfycbz7-gOzGO-FGrAmN7gBU-mqBY6WQZ4vFYx_GxcZ77w9YJaCuyERb9VghYDpDQuk92M4/exec";
     const form = document.getElementById('formTabungan');
 
     // Fungsi saat tombol Add ditekan
@@ -160,7 +160,19 @@
         const thn = d.getFullYear();
         return `${tgl}/${bln}/${thn}`;
     }
-
+function hapusData(baris) {
+  if (confirm("Yakin ingin menghapus data ini?")) {
+    fetch(CLOUD_API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify({ action: "delete", baris: baris })
+    })
+    .then(() => {
+      alert("Data berhasil dihapus!");
+      location.reload(); // Refresh halaman untuk update tabel
+    });
+  }
+}
     function renderTabel() {
         isiTabel.innerHTML = '';
         let totalSaldo = 0;
@@ -294,16 +306,21 @@
         document.getElementById('tanggal').value = new Date().toISOString().substring(0, 10);
     });
 
-    window.hapusData = function(index) {
-        if(confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-            if(editId === index) {
-                editId = null;
-                submitBtn.innerText = "Add";
-                submitBtn.classList.remove('mode-edit');
-                document.getElementById('nominal').value = '';
-                document.getElementById('sangkutan').value = '';
-            }
-            dataTabungan.splice(index, 1);
+window.hapusData = function(baris) {
+    if (confirm("Apakah Anda yakin ingin menghapus transaksi ini dari Sheets?")) {
+        fetch(CLOUD_API_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "delete", baris: baris })
+        })
+        .then(() => {
+            alert("Data berhasil dihapus!");
+            location.reload(); // Refresh halaman untuk mengambil data terbaru
+        })
+        .catch(err => console.error("Error menghapus:", err));
+    }
+}
             renderTabel();
         }
     }
